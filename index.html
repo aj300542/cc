@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <title>墨水小便条</title>
+    <link rel="stylesheet" href="js/styles.css">
+</head>
+
+<body>
+    <div id="grid-container">
+        <div id="grid"></div>
+        <div id="popup"></div>
+    </div>
+    <div class="text-container">
+        <input type="text" id="textInput" value="劲" placeholder="请输入文字…" oninput="updateGrid()" autocomplete="off"
+            autofocus />
+    </div>
+    <div class="containControls">
+        <div id="controls">
+            <button onclick="applyHardLightCanvas()">强光</button>
+            <button onclick="applyLuminosityCanvas()">明度</button>
+            <button onclick="applyTransparency()">透明</button>
+            <div class="color-picker-container" style="position: relative;">
+                <button onclick="toggleScrollMenu()">变色 🎨</button>
+                <div class="scroll-menu" id="scrollMenu">
+                    <ul>
+                        <li onclick="applyColorCanvas('crimson')">绯红</li>
+                        <li onclick="applyColorCanvas('orange')">橙色</li>
+                        <li onclick="applyColorCanvas('salmon')">鲑红</li>
+                        <li onclick="applyColorCanvas('teal')">青绿</li>
+                        <li onclick="applyColorCanvas('navy')">藏青</li>
+                        <li onclick="applyColorCanvas('indigo')">靛蓝</li>
+                        <li onclick="applyColorCanvas('plum')">梅紫</li>
+                        <li onclick="applyColorCanvas('chocolate')">巧克力</li>
+                        <li onclick="applyColorCanvas('coral')">珊瑚</li>
+                        <li onclick="applyColorCanvas('khaki')">卡其</li>
+                        <li onclick="applyColorCanvas('lavender')">薰衣草</li>
+                        <li onclick="applyColorCanvas('ivory')">象牙</li>
+                        <li onclick="applyColorCanvas('slategray')">石板灰</li>
+                        <li onclick="applyColorCanvas('darkcyan')">深青</li>
+                        <li onclick="applyColorCanvas('lightpink')">浅粉</li>
+
+                    </ul>
+                </div>
+            </div>
+            <div class="color-picker-wrapper">
+                <select id="baseColorSelect" onchange="setBaseColor(this.value)">
+                    <option value="#ffffff">白色</option>
+                    <option value="#ddc80a">鲜黄</option>
+                    <option value="#00c4c4">青蓝</option>
+                    <option value="#1a1a1a">深灰</option>
+                    <option value="#009714">绿苔</option>
+                    <option value="#e6e6fa">雪青</option>
+                    <option value="#faebd7">杏仁米</option>
+                    <option value="#708090">青灰</option>
+                    <option value="#0f0f0f">墨黑</option>
+                    <option value="#006eff">天蓝</option>
+                    <option value="#d2b48c">茶褐</option>
+                    <option value="#e3c9c9">藕荷</option>
+                    <option value="#ffe4e1">蔷薇粉</option>
+                    <option value="#ffdab9">蜜桃橙</option>
+                    <option value="#8fbc8f">豆绿</option>
+                    <option value="#4682b4">钢蓝</option>
+                    <option value="#b0c4de">雾蓝</option>
+                    <option value="#dda0dd">淡紫</option>
+                    <option value="#bc8f8f">玫瑰褐</option>
+                    <option value="#f4a460">沙棕</option>
+                    <option value="#2f4f4f">墨绿</option>
+                    <option value="#ffe4b5">奶油黄</option>
+                    <option value="#c0c0c0">银灰</option>
+                    <option value="#ffcccb">柔粉</option>
+                    <option value="#9b0a00">红墙</option>
+                </select>
+            </div>
+            <button id="startDemoBtn">▶️⏸️</button>
+            <button id="stopDemoBtn">⏹</button>
+            <input type="file" id="txtFileInput" accept=".txt">
+            <div class="file-upload-wrapper">
+                <button onclick="document.getElementById('txtFileInput').click()">加载</button>
+                <input type="file" id="txtFileInput" accept=".txt">
+
+            </div>
+
+            <button onclick="loadSample()">故事</button>
+            <button onclick="enterFullscreen()">全屏</button>
+        </div>
+    </div>
+    <script>
+        let currentBaseColor = "#ffffff";
+
+        function setBaseColor(color) {
+            currentBaseColor = color;
+            console.log("底色已设置为：", color);
+
+            // 更新所有已插入的底色层
+            document.querySelectorAll(".base-color-layer").forEach(layer => {
+                layer.style.backgroundColor = currentBaseColor;
+            });
+        }
+
+        function insertBaseLayer(cell) {
+            const baseLayer = document.createElement("div");
+            baseLayer.className = "base-color-layer";
+            baseLayer.style.backgroundColor = currentBaseColor || "#fdf6e3";
+            baseLayer.style.position = "absolute";
+            baseLayer.style.top = "0";
+            baseLayer.style.left = "0";
+            baseLayer.style.width = "100%";
+            baseLayer.style.height = "100%";
+            baseLayer.style.zIndex = "0";
+
+            cell.style.position = "relative";
+            cell.appendChild(baseLayer);
+        }
+
+        const colorSelect = document.querySelector("select");
+        let isHovering = false;
+
+        function setBaseColor(color) {
+            currentBaseColor = color;
+            console.log("底色已设置为：", color);
+            document.querySelectorAll(".base-color-layer").forEach(layer => {
+                layer.style.backgroundColor = currentBaseColor;
+            });
+        }
+
+        function wheelHandler(e) {
+            if (!isHovering) return; // ✅ 只有悬停时才触发
+            e.preventDefault();
+
+            const options = Array.from(colorSelect.options);
+            const currentIndex = colorSelect.selectedIndex;
+            let nextIndex = currentIndex + (e.deltaY > 0 ? 1 : -1);
+
+            if (nextIndex < 0) nextIndex = options.length - 1;
+            if (nextIndex >= options.length) nextIndex = 0;
+
+            colorSelect.selectedIndex = nextIndex;
+            setBaseColor(options[nextIndex].value);
+        }
+
+        // ✅ 只绑定一次 wheel，并设置 passive: false
+        colorSelect.addEventListener("wheel", wheelHandler, { passive: false });
+
+        // ✅ 用悬停状态控制触发
+        colorSelect.addEventListener("mouseenter", () => {
+            isHovering = true;
+        });
+        colorSelect.addEventListener("mouseleave", () => {
+            isHovering = false;
+        });
+
+
+    </script>
+    <script>
+        const colorList = [
+            'crimson', 'orange', 'salmon', 'teal', 'navy', 'indigo',
+            'plum', 'chocolate', 'coral', 'khaki', 'lavender',
+            'ivory', 'slategray', 'darkcyan', 'lightpink'
+        ];
+
+        let currentColorIndex = 0;
+
+        const colorButton = document.querySelector('.color-picker-container button');
+
+        colorButton.addEventListener('mouseenter', () => {
+            colorButton.addEventListener('wheel', handleWheelScroll);
+        });
+
+        colorButton.addEventListener('mouseleave', () => {
+            colorButton.removeEventListener('wheel', handleWheelScroll);
+        });
+
+        function handleWheelScroll(e) {
+            e.preventDefault();
+
+            if (e.deltaY > 0) {
+                currentColorIndex = (currentColorIndex + 1) % colorList.length;
+            } else {
+                currentColorIndex = (currentColorIndex - 1 + colorList.length) % colorList.length;
+            }
+
+            const selectedColor = colorList[currentColorIndex];
+            applyColorCanvas(selectedColor);
+
+            // 可选：更新按钮文字或显示预览
+            colorButton.textContent = `变色 🎨 ${selectedColor}`;
+        }
+
+    </script>
+    <script>
+        function enterFullscreen() {
+            const container = document.querySelector(".containControls");
+            container.style.display = "none";
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen();
+            }
+        }
+
+        document.addEventListener("fullscreenchange", () => {
+            const container = document.querySelector(".containControls");
+            if (!document.fullscreenElement) {
+                container.style.display = "flex";
+            }
+        });
+    </script>
+    <script src="js/grid.js"></script>
+    <script src="js/txt.js"></script>
+    <script src="js/color.js"></script>
+    <script src="js/play.js"></script>
+</body>
+
+</html>
