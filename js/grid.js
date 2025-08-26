@@ -1,9 +1,10 @@
-let imageMap = {};
 const MAX_CELL_HEIGHT = '15vh';
+const imageMap = {}; // 缓存已加载的字符映射
 
 window.layoutUtils = {
     isPortrait: () => window.innerHeight > window.innerWidth
 };
+
 window.setGridCols = function (defaultCols) {
     const isPortrait = layoutUtils.isPortrait();
     const cellCount = txtState.chunks[txtState.currentChunkIndex]?.length || CHUNK_SIZE;
@@ -17,25 +18,26 @@ window.setGridCols = function (defaultCols) {
         window.gridConfig.cols = isPortrait ? defaultRows : defaultCols;
     }
 };
-async function loadImageMap() {
-    try {
-        const response = await fetch('./image_map.json');
-        if (!response.ok) throw new Error("加载失败");
-        imageMap = await response.json();
-        updateGrid();
-    } catch (err) {
-        console.error("❌ 无法加载 image_map.json:", err);
-    }
+
+function getImageFilename(char, index) {
+    return index === 0
+        ? `${char}.jpg`
+        : `${char}_${String(index).padStart(3, '0')}.jpg`;
 }
 
-function findMatchingImages(char) {
-    const matches = [];
-    for (const key in imageMap) {
-        if (key.includes(char)) {
-            matches.push(...imageMap[key]);
+async function findMatchingImages(char) {
+    if (!imageMap[char]) {
+        try {
+            const response = await fetch(`./json/${char}.json`);
+            if (!response.ok) throw new Error(`无法加载 ${char}.json`);
+            const indices = await response.json();
+            imageMap[char] = indices.map(index => getImageFilename(char, index));
+        } catch (err) {
+            console.warn(`❌ ${char} 的图像列表加载失败`, err);
+            imageMap[char] = []; // 防止重复请求
         }
     }
-    return matches.length > 0 ? matches : null;
+    return imageMap[char]?.length ? imageMap[char] : null;
 }
 
 function generateGrid(cellCount) {
@@ -46,67 +48,59 @@ function generateGrid(cellCount) {
     const isPortrait = layoutUtils.isPortrait();
     const useDynamic = cellCount < 7;
 
-
     let cols, rows;
 
     if (isPortrait) {
-        // 🧠 动态竖排逻辑：短句一列，长句自动分列但不超过屏幕宽度
-        const maxCols = Math.floor(window.innerWidth / 100); // 每列约 100px
+        const maxCols = Math.floor(window.innerWidth / 100);
         cols = cellCount < 7
             ? 1
-            : Math.min(Math.ceil(cellCount / 8), maxCols); // 每列约 4 字
+            : Math.min(Math.ceil(cellCount / 8), maxCols);
         rows = Math.ceil(cellCount / cols);
     } else {
-        // 横屏逻辑保持不变
         cols = window.gridConfig?.cols && !useDynamic
             ? window.gridConfig.cols
             : Math.min(cellCount, Math.ceil(window.innerWidth / 100));
         rows = Math.ceil(cellCount / cols);
     }
 
-    // ✅ 正确位置：在 rows 和 cols 计算之后再赋值
     window.gridConfig.rows = rows;
     window.gridConfig.cols = cols;
 
     grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    grid.style.maxHeight = `${window.innerHeight * 0.85}px`;
+    grid.style.overflowY = "auto";
 
     for (let i = 0; i < rows * cols; i++) {
         const cell = document.createElement("div");
         cell.className = "cell";
         grid.appendChild(cell);
     }
-    // ✅ 限制最大高度，避免撑爆页面
-    grid.style.maxHeight = `${window.innerHeight * 0.85}px`;
-    grid.style.overflowY = "auto";
+
     return { rows, cols };
 }
 
-
-
-function fillGridContent(text) {
+async function fillGridContent(text) {
     const cells = document.querySelectorAll(".cell");
     const isPortrait = layoutUtils.isPortrait();
     const rows = window.gridConfig.rows;
     const cols = window.gridConfig.cols;
-
 
     for (let i = 0; i < cells.length; i++) {
         const cell = cells[i];
         cell.innerHTML = "";
 
         const index = isPortrait
-            ? Math.floor(i / cols) + (cols - 1 - (i % cols)) * rows  // ✅ 右起竖排
-            : i;  // 横屏仍然行优先
-
+            ? Math.floor(i / cols) + (cols - 1 - (i % cols)) * rows
+            : i;
 
         const char = text[index];
-        const imgList = findMatchingImages(char);
+        const imgList = await findMatchingImages(char);
 
         if (imgList && imgList.length > 0) {
             const img = document.createElement("img");
             const randomIndex = Math.floor(Math.random() * imgList.length);
-            img.src = `./word/edit/${imgList[randomIndex]}`;
+            img.src = `./json/${char}/${imgList[randomIndex]}`;
             img.style.mixBlendMode = "normal";
             img.style.maxWidth = "100%";
             img.style.maxHeight = "100%";
@@ -124,9 +118,10 @@ function fillGridContent(text) {
             cell.appendChild(span);
         }
 
-        cell.oncontextmenu = (e) => {
+        cell.oncontextmenu = async (e) => {
             e.preventDefault();
-            showPopup(e.pageX, e.pageY, char, cell);
+            const imgList = await findMatchingImages(char);
+            showPopup(e.pageX, e.pageY, char, cell, imgList);
         };
     }
 
@@ -135,26 +130,28 @@ function fillGridContent(text) {
 
 function getGridSize(cellCount) {
     const isPortrait = layoutUtils.isPortrait();
-    const cols = isPortrait ? Math.ceil(Math.sqrt(cellCount)) : Math.min(cellCount, Math.ceil(window.innerWidth / 100));
+    const cols = isPortrait
+        ? Math.ceil(Math.sqrt(cellCount))
+        : Math.min(cellCount, Math.ceil(window.innerWidth / 100));
     const rows = Math.ceil(cellCount / cols);
     return { rows, cols };
 }
 
-function updateGrid() {
+async function updateGrid() {
     const text = document.getElementById("textInput").value || "";
     const cellCount = text.length;
     const { rows, cols } = generateGrid(cellCount);
-    fillGridContent(text.padEnd(rows * cols, "　"), rows, cols);
+    await fillGridContent(text.padEnd(rows * cols, "　"), rows, cols);
 }
-function showPopup(x, y, char, targetCell) {
+
+function showPopup(x, y, char, targetCell, imgList) {
     const popup = document.getElementById("popup");
     popup.innerHTML = "";
-    const imgList = findMatchingImages(char);
     if (!imgList) return;
 
     imgList.forEach(filename => {
         const img = document.createElement("img");
-        img.src = `./word/edit/${filename}`;
+        img.src = `./json/${char}/${filename}`;
         img.style.width = MAX_CELL_HEIGHT;
         img.style.maxHeight = "20vh";
         img.style.height = "auto";
@@ -174,26 +171,31 @@ function showPopup(x, y, char, targetCell) {
         };
         popup.appendChild(img);
     });
+
     popup.style.left = `${x}px`;
     popup.style.top = `${y}px`;
     popup.style.display = "block";
 }
+
 document.addEventListener("click", () => {
     const popup = document.getElementById("popup");
     if (popup) popup.style.display = "none";
 });
+
 function renderToCanvasAndRemoveWhite() {
     // 留空，未来可添加 canvas 渲染逻辑
 }
+
 window.addEventListener("resize", () => {
     if (typeof window.setGridCols === "function") {
-        window.setGridCols(LINE_BREAK_INTERVAL); // 🧩 同步列数
+        window.setGridCols(LINE_BREAK_INTERVAL);
     }
     if (typeof window.updateGrid === "function") {
-        window.updateGrid(); // 🔄 重新渲染
+        updateGrid();
     }
 });
+
 window.onload = () => {
-    loadImageMap();
     document.getElementById("textInput").addEventListener("input", updateGrid);
+    updateGrid(); // 初始渲染
 };
