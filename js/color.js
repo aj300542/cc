@@ -350,7 +350,3 @@ function applyTransparency() {
 
     renderToCanvasAndRemoveWhite(); // 更新主 canvas 预览
 }
-window.onload = () => {
-    loadImageMap();
-    updateGrid(); // 初始渲染
-};
