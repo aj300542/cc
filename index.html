@@ -235,15 +235,16 @@
 
             // ✅ 可选：重置中断状态
             demoState.isInterrupted = false;
+
             applyLuminosityCanvas();
-            // 🎨 混合模式处理
+
+            let delay = 300;
             for (let i = 0; i < 5; i++) {
                 setTimeout(() => {
                     if (!demoState.isInterrupted) {
-                        applyLuminosityCanvas();
                         applyHardLightCanvas();
                     }
-                }, i * 200);
+                }, delay + i * 200);
             }
 
             setTimeout(() => {
@@ -281,5 +282,6 @@
     <script src="js/color.js"></script>
     <script src="js/play.js"></script>
 </body>
+
 
 </html>
