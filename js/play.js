@@ -182,15 +182,34 @@ function runPoemDemo() {
                     if (!demoState.isInterrupted) {
                         applyLuminosityCanvas();
                         applyHardLightCanvas();
+
                     }
                 }, i * 200);
             }
 
             setTimeout(() => {
-                if (!demoState.isInterrupted) applyTransparency();
-                applyColorCanvasWithRandomTint(); // 染色
+                if (!demoState.isInterrupted) {
+                    applyTransparency();
+                    applyColorCanvasWithRandomTint(); // 染色
 
+                    setTimeout(() => {
+                        applyXuanTextureToCharacters(0.4, 512);
+
+                        setTimeout(() => {
+                            applyGrainToCharacters(0.2, 2); // 颗粒处理
+
+                            setTimeout(() => {
+                                applyEmbossEffect(); // 浮雕处理
+
+                                setTimeout(() => {
+                                    apply3dffect(1, 1.5); // 光照浮雕
+                                }, 100);
+                            }, 100);
+                        }, 100);
+                    }, 100);
+                }
             }, 2500);
+
 
             demoState.indices.line++;
             demoState.timers.demo = setTimeout(runPoemDemo, 5000);

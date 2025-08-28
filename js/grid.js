@@ -25,19 +25,93 @@ function getImageFilename(char, index) {
         : `${char}_${String(index).padStart(3, '0')}.jpg`;
 }
 
+function getImagePath(filename) {
+    const baseName = filename.includes("_")
+        ? filename.split("_")[0]
+        : filename.replace(".jpg", "");
+    return `./json/${baseName}/${filename}`;
+}
+
 async function findMatchingImages(char) {
-    if (!imageMap[char]) {
-        try {
-            const response = await fetch(`./json/${char}.json`);
-            if (!response.ok) throw new Error(`无法加载 ${char}.json`);
+    
+    if (imageMap[char]) return imageMap[char];
+
+    const allImages = [];
+
+    // 加载单字 JSON
+    try {
+        const response = await fetch(`./json/${char}.json`);
+        if (response.ok) {
             const indices = await response.json();
-            imageMap[char] = indices.map(index => getImageFilename(char, index));
-        } catch (err) {
-            console.warn(`❌ ${char} 的图像列表加载失败`, err);
-            imageMap[char] = []; // 防止重复请求
+            const images = indices.map(index => getImageFilename(char, index));
+            allImages.push(...images);
         }
+    } catch (err) {
+        console.warn(`❌ ${char}.json 加载失败`, err);
     }
-    return imageMap[char]?.length ? imageMap[char] : null;
+
+    // 加载多字词 JSON（从 index.json 中筛选）
+    try {
+        const indexRes = await fetch(`./json/index.json`);
+        if (indexRes.ok) {
+            const allFilenames = await indexRes.json();
+            const matchedFiles = allFilenames.filter(name => name.includes(char));
+
+            for (const filename of matchedFiles) {
+                const baseName = filename.replace(".json", "");
+                try {
+                    const res = await fetch(`./json/${filename}`);
+                    if (!res.ok) continue;
+                    const indices = await res.json();
+                    const images = indices.map(index => getImageFilename(baseName, index));
+                    allImages.push(...images);
+                } catch (err) {
+                    console.warn(`❌ 加载 ${filename} 失败`, err);
+                }
+            }
+        }
+    } catch (err) {
+        console.warn("❌ index.json 加载失败", err);
+    }
+
+    imageMap[char] = allImages;
+    return allImages.length ? allImages : null;
+}
+
+function showPopup(x, y, char, targetCell, imgList) {
+    const popup = document.getElementById("popup");
+    popup.innerHTML = "";
+    if (!imgList || imgList.length === 0) return;
+
+    imgList.forEach(filename => {
+        const img = document.createElement("img");
+        img.src = getImagePath(filename);
+
+        img.style.width = MAX_CELL_HEIGHT;
+        img.style.maxHeight = "20vh";
+        img.style.height = "auto";
+        img.style.objectFit = "contain";
+        img.style.margin = "1vh";
+        img.style.cursor = "pointer";
+
+        img.onclick = () => {
+            targetCell.innerHTML = "";
+            const newImg = document.createElement("img");
+            newImg.src = img.src;
+            newImg.style.maxWidth = "100%";
+            newImg.style.maxHeight = "100%";
+            newImg.style.objectFit = "contain";
+            targetCell.appendChild(newImg);
+            popup.style.display = "none";
+            renderToCanvasAndRemoveWhite();
+        };
+
+        popup.appendChild(img);
+    });
+
+    popup.style.left = `${x}px`;
+    popup.style.top = `${y}px`;
+    popup.style.display = "block";
 }
 
 function generateGrid(cellCount) {
@@ -100,11 +174,32 @@ async function fillGridContent(text) {
         if (imgList && imgList.length > 0) {
             const img = document.createElement("img");
             const randomIndex = Math.floor(Math.random() * imgList.length);
-            img.src = `./json/${char}/${imgList[randomIndex]}`;
+            img.src = getImagePath(imgList[randomIndex]);
             img.style.mixBlendMode = "normal";
             img.style.maxWidth = "100%";
             img.style.maxHeight = "100%";
             img.style.objectFit = "contain";
+
+            img.onload = () => {
+                const scaleX = cell.clientWidth / img.naturalWidth;
+                const scaleY = cell.clientHeight / img.naturalHeight;
+                const scale = Math.min(scaleX, scaleY);
+                cell.dataset.scaleRatio = scale.toFixed(3);
+            };
+
+            img.onerror = () => {
+                cell.innerHTML = "";
+                const fallback = document.createElement("span");
+                fallback.textContent = char;
+                fallback.style.fontSize = "clamp(3vh, 6vw, 8vh)";
+                fallback.style.display = "flex";
+                fallback.style.alignItems = "center";
+                fallback.style.justifyContent = "center";
+                fallback.style.width = "100%";
+                fallback.style.height = "100%";
+                cell.appendChild(fallback);
+            };
+
             cell.appendChild(img);
         } else if (char) {
             const span = document.createElement("span");
@@ -142,39 +237,6 @@ async function updateGrid() {
     const cellCount = text.length;
     const { rows, cols } = generateGrid(cellCount);
     await fillGridContent(text.padEnd(rows * cols, "　"), rows, cols);
-}
-
-function showPopup(x, y, char, targetCell, imgList) {
-    const popup = document.getElementById("popup");
-    popup.innerHTML = "";
-    if (!imgList) return;
-
-    imgList.forEach(filename => {
-        const img = document.createElement("img");
-        img.src = `./json/${char}/${filename}`;
-        img.style.width = MAX_CELL_HEIGHT;
-        img.style.maxHeight = "20vh";
-        img.style.height = "auto";
-        img.style.objectFit = "contain";
-        img.style.margin = "1vh";
-        img.style.cursor = "pointer";
-        img.onclick = () => {
-            targetCell.innerHTML = "";
-            const newImg = document.createElement("img");
-            newImg.src = img.src;
-            newImg.style.maxWidth = "100%";
-            newImg.style.maxHeight = "100%";
-            newImg.style.objectFit = "contain";
-            targetCell.appendChild(newImg);
-            popup.style.display = "none";
-            renderToCanvasAndRemoveWhite();
-        };
-        popup.appendChild(img);
-    });
-
-    popup.style.left = `${x}px`;
-    popup.style.top = `${y}px`;
-    popup.style.display = "block";
 }
 
 document.addEventListener("click", () => {
