@@ -10,6 +10,22 @@
 </head>
 
 <body>
+    <svg width="0" height="0" style="position: absolute;">
+        <filter id="embossFilter" x="0" y="0" width="100%" height="100%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur" />
+            <feOffset in="blur" dx="2" dy="2" result="offsetBlur" />
+            <feSpecularLighting in="blur" surfaceScale="5" specularConstant="0.75" specularExponent="20"
+                lighting-color="#ffffff" result="specOut">
+                <fePointLight id="dynamicLight" x="50" y="50" z="200" />
+            </feSpecularLighting>
+            <feComposite in="specOut" in2="SourceAlpha" operator="in" result="specOut" />
+            <feMerge>
+                <feMergeNode in="SourceGraphic" />
+                <feMergeNode in="specOut" />
+            </feMerge>
+        </filter>
+    </svg>
+
     <div id="grid-container">
         <div id="grid"></div>
         <div id="popup"></div>
@@ -75,6 +91,12 @@
                     <option value="#9b0a00">红墙</option>
                 </select>
             </div>
+
+            <button onclick="applyXuanWithEmboss()">宣纸纹理</button>
+            <button onclick="applyGrainWithEmboss()">颗粒质感</button>
+            <button onclick="apply3dWithLight()">立体增强</button>
+            <button onclick="runRandomEffect()">🕹️</button>
+
             <button id="startDemoBtn">▶️⏸️</button>
             <button id="stopDemoBtn">⏹</button>
             <input type="file" id="txtFileInput" accept=".txt">
@@ -153,7 +175,6 @@
             isHovering = false;
         });
 
-
     </script>
     <script>
         const colorList = [
@@ -207,11 +228,58 @@
             }
         });
     </script>
+    <script>
+        function runRandomEffect() {
+            // ✅ 移除中断判断，允许随时运行
+            // if (!demoState || demoState.isInterrupted) return;
+
+            // ✅ 可选：重置中断状态
+            demoState.isInterrupted = false;
+            applyLuminosityCanvas();
+            // 🎨 混合模式处理
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    if (!demoState.isInterrupted) {
+                        applyLuminosityCanvas();
+                        applyHardLightCanvas();
+                    }
+                }, i * 200);
+            }
+
+            setTimeout(() => {
+                if (!demoState.isInterrupted) {
+                    applyTransparency();
+                    applyColorRandomTint();
+
+                    setTimeout(() => {
+                        applyXuanTextureToCharacters(0.4, 512);
+
+                        setTimeout(() => {
+                            applyGrainToCharacters(0.2, 2);
+
+                            setTimeout(() => {
+                                applyEmbossEffect();
+
+                                setTimeout(() => {
+                                    apply3dffect(1, 1.5);
+
+                                    setTimeout(() => {
+                                        applyEmbossEffect();// 光照浮雕
+                                    }, 100);
+                                }, 100);
+                            }, 100);
+                        }, 100);
+                    }, 100);
+                }
+            }, 2500);
+        }
+
+    </script>
+    <script src="js/effect.js"></script>
     <script src="js/grid.js"></script>
     <script src="js/txt.js"></script>
     <script src="js/color.js"></script>
     <script src="js/play.js"></script>
 </body>
-
 
 </html>
