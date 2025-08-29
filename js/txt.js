@@ -124,7 +124,7 @@
     }
 
     // ▶️ 打字流程
-    function startTypingChunk() {
+    async function startTypingChunk() {
         if (txtState.currentChunkIndex >= txtState.chunks.length) return;
 
         const input = document.getElementById("textInput");
@@ -134,26 +134,31 @@
         txtState.charIndex = 0;
         const currentText = txtState.chunks[txtState.currentChunkIndex];
 
-        function typeNextChar() {
+        async function typeNextChar() {
             if (txtState.charIndex < currentText.length) {
                 input.value += currentText[txtState.charIndex];
                 txtState.charIndex++;
 
-                // ✅ 始终调用 grid.js 的图像渲染逻辑
                 if (typeof window.updateGrid === "function") {
                     window.updateGrid();
                 }
 
                 txtState.typingTimer = setTimeout(typeNextChar, CHAR_INTERVAL);
             } else {
+                // ✅ 等待图像加载完成
+                await fillGridContent(input.value.padEnd(window.gridConfig.rows * window.gridConfig.cols, "　"));
+
+                if (txtState.demoInterrupted) return;
+
                 runBlendAndTransparencyEffects();
                 txtState.currentChunkIndex++;
-                setTimeout(startTypingChunk, SEGMENT_PAUSE);
+                setTimeout(() => startTypingChunk(), SEGMENT_PAUSE);
             }
         }
 
         typeNextChar();
     }
+
 
     // 🎨 混合与染色效果（钩子函数）
     function runBlendAndTransparencyEffects() {
