@@ -147,7 +147,7 @@ function handleStopDemo() {
 
 
 // 🔁 主演示流程
-function runPoemDemo() {
+async function runPoemDemo() {
     if (demoState.indices.line >= poemLines.length) {
         clearTimeout(demoState.timers.demo);
         const btn = document.getElementById("startDemoBtn");
@@ -164,7 +164,7 @@ function runPoemDemo() {
     demoState.indices.char = 0;
     const charInterval = 300;
 
-    function typeNextChar() {
+    async function typeNextChar() {
         if (demoState.isInterrupted) {
             console.log("演示已中断");
             return;
@@ -172,46 +172,47 @@ function runPoemDemo() {
 
         if (demoState.indices.char < line.length) {
             input.value += line[demoState.indices.char];
-            updateGrid(); // ✅ 你的网格更新函数
+            updateGrid(); // ✅ 网格更新（异步图像加载）
             demoState.indices.char++;
             demoState.timers.typing = setTimeout(typeNextChar, charInterval);
         } else {
+            // ✅ 等待图像加载完成
+            await fillGridContent(input.value.padEnd(window.gridConfig.rows * window.gridConfig.cols, "　"));
+
+            if (demoState.isInterrupted) return;
 
             applyLuminosityCanvas();
-            let delay = 100;
+
             for (let i = 0; i < 5; i++) {
                 setTimeout(() => {
                     if (!demoState.isInterrupted) {
-
                         applyHardLightCanvas();
-
                     }
                 }, i * 200);
             }
 
             setTimeout(() => {
-                if (!demoState.isInterrupted) {
-                    applyTransparency();
-                    applyColorCanvasWithRandomTint(); // 染色
+                if (demoState.isInterrupted) return;
+
+                applyTransparency();
+                applyColorCanvasWithRandomTint();
+
+                setTimeout(() => {
+                    applyXuanTextureToCharacters(0.4, 512);
 
                     setTimeout(() => {
-                        applyXuanTextureToCharacters(0.4, 512);
+                        applyGrainToCharacters(0.2, 2);
 
                         setTimeout(() => {
-                            applyGrainToCharacters(0.2, 2); // 颗粒处理
+                            applyEmbossEffect();
 
                             setTimeout(() => {
-                                applyEmbossEffect(); // 浮雕处理
-
-                                setTimeout(() => {
-                                    apply3dffect(1, 1.5); // 光照浮雕
-                                }, 100);
+                                apply3dffect(1, 1.5);
                             }, 100);
                         }, 100);
                     }, 100);
-                }
+                }, 100);
             }, 2500);
-
 
             demoState.indices.line++;
             demoState.timers.demo = setTimeout(runPoemDemo, 5000);

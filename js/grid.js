@@ -33,7 +33,7 @@ function getImagePath(filename) {
 }
 
 async function findMatchingImages(char) {
-    
+
     if (imageMap[char]) return imageMap[char];
 
     const allImages = [];
@@ -160,6 +160,8 @@ async function fillGridContent(text) {
     const rows = window.gridConfig.rows;
     const cols = window.gridConfig.cols;
 
+    const loadPromises = [];
+
     for (let i = 0; i < cells.length; i++) {
         const cell = cells[i];
         cell.innerHTML = "";
@@ -180,26 +182,30 @@ async function fillGridContent(text) {
             img.style.maxHeight = "100%";
             img.style.objectFit = "contain";
 
-            img.onload = () => {
-                const scaleX = cell.clientWidth / img.naturalWidth;
-                const scaleY = cell.clientHeight / img.naturalHeight;
-                const scale = Math.min(scaleX, scaleY);
-                cell.dataset.scaleRatio = scale.toFixed(3);
-            };
+            const loadPromise = new Promise(resolve => {
+                img.onload = () => {
+                    const scaleX = cell.clientWidth / img.naturalWidth;
+                    const scaleY = cell.clientHeight / img.naturalHeight;
+                    const scale = Math.min(scaleX, scaleY);
+                    cell.dataset.scaleRatio = scale.toFixed(3);
+                    resolve();
+                };
+                img.onerror = () => {
+                    cell.innerHTML = "";
+                    const fallback = document.createElement("span");
+                    fallback.textContent = char;
+                    fallback.style.fontSize = "clamp(3vh, 6vw, 8vh)";
+                    fallback.style.display = "flex";
+                    fallback.style.alignItems = "center";
+                    fallback.style.justifyContent = "center";
+                    fallback.style.width = "100%";
+                    fallback.style.height = "100%";
+                    cell.appendChild(fallback);
+                    resolve(); // 即使失败也继续
+                };
+            });
 
-            img.onerror = () => {
-                cell.innerHTML = "";
-                const fallback = document.createElement("span");
-                fallback.textContent = char;
-                fallback.style.fontSize = "clamp(3vh, 6vw, 8vh)";
-                fallback.style.display = "flex";
-                fallback.style.alignItems = "center";
-                fallback.style.justifyContent = "center";
-                fallback.style.width = "100%";
-                fallback.style.height = "100%";
-                cell.appendChild(fallback);
-            };
-
+            loadPromises.push(loadPromise);
             cell.appendChild(img);
         } else if (char) {
             const span = document.createElement("span");
@@ -220,8 +226,10 @@ async function fillGridContent(text) {
         };
     }
 
+    await Promise.all(loadPromises); // ✅ 等待所有图像加载完成
     renderToCanvasAndRemoveWhite();
 }
+
 
 function getGridSize(cellCount) {
     const isPortrait = layoutUtils.isPortrait();
