@@ -86,6 +86,36 @@ body {
     align-items: center;
     background-color: #e7e7e7;
     font-size: 2vh;
+    z-index: 1;
+}
+
+.ui-buttons {
+    position: fixed;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 2vw;
+    z-index: 3;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.ui-buttons button {
+    background-color: rgba(219, 219, 219, 0.5);
+    color: #291b00;
+    border: none;
+    padding: 1vh 2vh;
+    font-size: 1.5vh;
+    border-radius: 0.5vh;
+    cursor: pointer;
+    pointer-events: auto;
+    /* ✅ 让按钮仍可点击 */
+    transition: background-color 0.3s ease;
+}
+
+.ui-buttons button:hover {
+    background-color: rgba(172, 172, 172, 0.479);
 }
 
 @media screen and (max-width: 600px) {
@@ -96,6 +126,7 @@ body {
     }
 
     #textInput {
+        position: relative;
         font-size: 1.2rem;
         /* 更适合触控输入 */
         width: 90vw;
@@ -110,6 +141,7 @@ body {
         background-color: rgba(255, 255, 255, 0.05);
         /* 微弱背景提升可见性 */
         border-radius: 8px;
+        z-index: 99;
     }
 }
 

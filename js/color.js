@@ -207,6 +207,7 @@ function applyColorCanvas(colorName) {
     const menu = document.getElementById("scrollMenu");
     if (menu) menu.style.display = "none";
 }
+
 function getRandomTint() {
     const hue = Math.floor(Math.random() * 360);
     const rgb = hslToRgb(hue / 360, 0.7, 0.6);
@@ -237,6 +238,18 @@ function hslToRgb(h, s, l) {
 
     return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
+function applyColorRandomTint() {
+    const tintColorNames = [
+        'red', 'blue', 'gold', 'green', 'purple', 'crimson', 'orange', 'salmon',
+        'teal', 'navy', 'indigo', 'plum', 'chocolate', 'coral', 'khaki',
+        'lavender', 'ivory', 'slategray', 'darkcyan', 'lightpink'
+    ];
+
+    const randomIndex = Math.floor(Math.random() * tintColorNames.length);
+    const randomColor = tintColorNames[randomIndex];
+    applyColorCanvas(randomColor);
+}
+
 function applyColorCanvasWithRandomTint() {
     const cells = document.querySelectorAll(".cell");
 
@@ -350,7 +363,3 @@ function applyTransparency() {
 
     renderToCanvasAndRemoveWhite(); // 更新主 canvas 预览
 }
-window.onload = () => {
-    loadImageMap();
-    updateGrid(); // 初始渲染
-};
