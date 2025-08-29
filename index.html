@@ -31,8 +31,20 @@
         <div id="popup"></div>
     </div>
     <div class="text-container">
+        <div class="ui-buttons">
+            <div class="left-buttons" style="position: relative;">
+                <button id="about-button">aj300542</button>
+            </div>
+            <div class="right-buttons" style="position: relative;">
+                <button id="donate">捐赠</button>
+            </div>
+        </div>
         <input type="text" id="textInput" value="千言万语" placeholder="请输入文字…" oninput="updateGrid()" autocomplete="off"
             autofocus />
+        <div class="ui-buttons">
+
+        </div>
+
     </div>
     <div class="containControls">
         <div id="controls">
@@ -227,53 +239,15 @@
                 container.style.display = "flex";
             }
         });
+        document.getElementById("about-button").addEventListener("click", () => {
+            window.open("https://aj300542.github.io/", "_blank");
+        });
+        document.getElementById("donate").addEventListener("click", () => {
+            window.open("https://aj300542.github.io/download.html", "_blank");
+        });
     </script>
     <script>
-        function runRandomEffect() {
-            // ✅ 移除中断判断，允许随时运行
-            // if (!demoState || demoState.isInterrupted) return;
 
-            // ✅ 可选：重置中断状态
-            demoState.isInterrupted = false;
-
-            applyLuminosityCanvas();
-
-            let delay = 300;
-            for (let i = 0; i < 5; i++) {
-                setTimeout(() => {
-                    if (!demoState.isInterrupted) {
-                        applyHardLightCanvas();
-                    }
-                }, delay + i * 200);
-            }
-
-            setTimeout(() => {
-                if (!demoState.isInterrupted) {
-                    applyTransparency();
-                    applyColorRandomTint();
-
-                    setTimeout(() => {
-                        applyXuanTextureToCharacters(0.4, 512);
-
-                        setTimeout(() => {
-                            applyGrainToCharacters(0.2, 2);
-
-                            setTimeout(() => {
-                                applyEmbossEffect();
-
-                                setTimeout(() => {
-                                    apply3dffect(1, 1.5);
-
-                                    setTimeout(() => {
-                                        applyEmbossEffect();// 光照浮雕
-                                    }, 100);
-                                }, 100);
-                            }, 100);
-                        }, 100);
-                    }, 100);
-                }
-            }, 2500);
-        }
 
     </script>
     <script src="js/effect.js"></script>
@@ -282,6 +256,5 @@
     <script src="js/color.js"></script>
     <script src="js/play.js"></script>
 </body>
-
 
 </html>
