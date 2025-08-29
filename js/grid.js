@@ -95,15 +95,29 @@ function showPopup(x, y, char, targetCell, imgList) {
         img.style.cursor = "pointer";
 
         img.onclick = () => {
+            popup.style.display = "none";
             targetCell.innerHTML = "";
+
             const newImg = document.createElement("img");
             newImg.src = img.src;
             newImg.style.maxWidth = "100%";
             newImg.style.maxHeight = "100%";
             newImg.style.objectFit = "contain";
+
+            newImg.onload = () => {
+                const scaleX = targetCell.clientWidth / newImg.naturalWidth;
+                const scaleY = targetCell.clientHeight / newImg.naturalHeight;
+                const scale = Math.min(scaleX, scaleY);
+                targetCell.dataset.scaleRatio = scale.toFixed(3);
+                targetCell.dataset.locked = "true";
+                renderToCanvasAndRemoveWhite(); // ✅ 重新渲染
+            };
+
+            newImg.onerror = () => {
+                console.warn("❌ 替换图像加载失败");
+            };
+
             targetCell.appendChild(newImg);
-            popup.style.display = "none";
-            renderToCanvasAndRemoveWhite();
         };
 
         popup.appendChild(img);
@@ -113,6 +127,7 @@ function showPopup(x, y, char, targetCell, imgList) {
     popup.style.top = `${y}px`;
     popup.style.display = "block";
 }
+
 
 function generateGrid(cellCount) {
     const grid = document.getElementById("grid");
@@ -171,6 +186,8 @@ async function fillGridContent(text) {
             : i;
 
         const char = text[index];
+        if (!char) continue;
+
         const imgList = await findMatchingImages(char);
 
         if (imgList && imgList.length > 0) {
@@ -182,12 +199,17 @@ async function fillGridContent(text) {
             img.style.maxHeight = "100%";
             img.style.objectFit = "contain";
 
+            // ✅ 清空并锁定 cell，确保只加载一个图像
+            cell.innerHTML = "";
+            cell.dataset.locked = "false";
+
             const loadPromise = new Promise(resolve => {
                 img.onload = () => {
                     const scaleX = cell.clientWidth / img.naturalWidth;
                     const scaleY = cell.clientHeight / img.naturalHeight;
                     const scale = Math.min(scaleX, scaleY);
                     cell.dataset.scaleRatio = scale.toFixed(3);
+                    cell.dataset.locked = "true"; // ✅ 图像加载完成后锁定
                     resolve();
                 };
                 img.onerror = () => {
@@ -201,13 +223,15 @@ async function fillGridContent(text) {
                     fallback.style.width = "100%";
                     fallback.style.height = "100%";
                     cell.appendChild(fallback);
-                    resolve(); // 即使失败也继续
+                    cell.dataset.locked = "true";
+                    resolve();
                 };
             });
 
             loadPromises.push(loadPromise);
             cell.appendChild(img);
-        } else if (char) {
+        } else {
+            // ✅ 无图像时使用文字 fallback
             const span = document.createElement("span");
             span.textContent = char;
             span.style.fontSize = "clamp(3vh, 6vw, 8vh)";
@@ -217,8 +241,10 @@ async function fillGridContent(text) {
             span.style.width = "100%";
             span.style.height = "100%";
             cell.appendChild(span);
+            cell.dataset.locked = "true";
         }
 
+        // ✅ 右键仅触发 popup，不修改 cell 内容
         cell.oncontextmenu = async (e) => {
             e.preventDefault();
             const imgList = await findMatchingImages(char);
@@ -227,7 +253,7 @@ async function fillGridContent(text) {
     }
 
     await Promise.all(loadPromises); // ✅ 等待所有图像加载完成
-    renderToCanvasAndRemoveWhite();
+    renderToCanvasAndRemoveWhite();  // ✅ 触发后期处理
 }
 
 
