@@ -228,4 +228,48 @@ function apply3dffect(baseOffset = 1, intensity = 1.5) {
 
     startDynamicLight(); // ✅ 光源动画仍可用于视觉演示
 }
+function runRandomEffect() {
+    // ✅ 移除中断判断，允许随时运行
+    // if (!demoState || demoState.isInterrupted) return;
 
+    // ✅ 可选：重置中断状态
+    demoState.isInterrupted = false;
+
+    applyLuminosityCanvas();
+
+    let delay = 200;
+    for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+            if (!demoState.isInterrupted) {
+                applyHardLightCanvas();
+            }
+        }, delay + i * 200);
+    }
+
+    setTimeout(() => {
+        if (!demoState.isInterrupted) {
+            applyTransparency();
+            applyColorRandomTint();
+
+            setTimeout(() => {
+                applyXuanTextureToCharacters(0.4, 512);
+
+                setTimeout(() => {
+                    applyGrainToCharacters(0.2, 2);
+
+                    setTimeout(() => {
+                        applyEmbossEffect();
+
+                        setTimeout(() => {
+                            apply3dffect(1, 1.5);
+
+                            setTimeout(() => {
+                                applyEmbossEffect();// 光照浮雕
+                            }, 100);
+                        }, 100);
+                    }, 100);
+                }, 100);
+            }, 100);
+        }
+    }, 2500);
+}

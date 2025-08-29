@@ -176,11 +176,13 @@ function runPoemDemo() {
             demoState.indices.char++;
             demoState.timers.typing = setTimeout(typeNextChar, charInterval);
         } else {
-            // 🎨 混合模式处理
+
+            applyLuminosityCanvas();
+            let delay = 100;
             for (let i = 0; i < 5; i++) {
                 setTimeout(() => {
                     if (!demoState.isInterrupted) {
-                        applyLuminosityCanvas();
+
                         applyHardLightCanvas();
 
                     }

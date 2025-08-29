@@ -158,45 +158,42 @@
     // 🎨 混合与染色效果（钩子函数）
     function runBlendAndTransparencyEffects() {
         console.log("🎨 触发视觉处理");
-
-        for (let i = 0; i < 2; i++) {
+        applyLuminosityCanvas();
+        let delay = 100;
+        applyLuminosityCanvas();
+        for (let i = 0; i < 5; i++) {
             setTimeout(() => {
-                if (!txtState.demoInterrupted) {
-                    applyLuminosityCanvas?.();
-                    applyHardLightCanvas?.();
+                if (!demoState.isInterrupted) {
+                    applyLuminosityCanvas();
+                    applyHardLightCanvas();
+
                 }
-            }, i * 100);
+            }, i * 200);
         }
 
         setTimeout(() => {
-            if (!txtState.demoInterrupted) applyLuminosityCanvas?.();
-        }, 150);
+            if (!demoState.isInterrupted) {
+                applyTransparency();
+                applyColorCanvasWithRandomTint(); // 染色
 
-        for (let i = 0; i < 10; i++) {
-            setTimeout(() => {
-                if (!txtState.demoInterrupted) {
-                    applyHardLightCanvas?.();
-                }
-            }, i * 100);
-        }
+                setTimeout(() => {
+                    applyXuanTextureToCharacters(0.4, 512);
 
-        setTimeout(() => {
-            if (!txtState.demoInterrupted) {
-                applyLuminosityCanvas?.();
-                applyColorCanvasWithRandomTint?.();
+                    setTimeout(() => {
+                        applyGrainToCharacters(0.2, 2); // 颗粒处理
+
+                        setTimeout(() => {
+                            applyEmbossEffect(); // 浮雕处理
+
+                            setTimeout(() => {
+                                apply3dffect(1, 1.5); // 光照浮雕
+                            }, 100);
+                        }, 100);
+                    }, 100);
+                }, 100);
             }
-        }, 1500);
+        }, 2500);
 
-        setTimeout(() => {
-            if (!txtState.demoInterrupted) applyLuminosityCanvas?.();
-        }, 2000);
-
-        setTimeout(() => {
-            if (!txtState.demoInterrupted) {
-                applyTransparency?.();
-                applyColorCanvasWithRandomTint?.(); // 最终染色
-            }
-        }, 3000);
     }
 
     // 🔄 响应屏幕方向变化
