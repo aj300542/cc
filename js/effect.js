@@ -35,7 +35,7 @@ function applyXuanTextureToCharacters(blendRatio = 0.4, baseTextureSize = 512) {
 
     cells.forEach(cell => {
         const img = cell.querySelector("img");
-        if (!img) return;
+        if (!img || !img.complete || img.naturalWidth === 0) return;
 
         const texture = new Image();
         texture.src = "js/old-gold2-bump.jpg";
@@ -47,32 +47,34 @@ function applyXuanTextureToCharacters(blendRatio = 0.4, baseTextureSize = 512) {
 
             canvas.width = img.naturalWidth;
             canvas.height = img.naturalHeight;
-
             ctx.drawImage(img, 0, 0);
 
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
 
-            // ✅ 读取缩放比例（由 fillGridContent 中 img.onload 设置）
-            const scaleRatio = parseFloat(cell.dataset.scaleRatio || "1");
+            // ✅ 计算缩放比例（确保纹理密度一致）
+            const scaleX = cell.clientWidth / img.naturalWidth;
+            const scaleY = cell.clientHeight / img.naturalHeight;
+            const scale = Math.min(scaleX, scaleY);
 
-            // ✅ 计算纹理缩放尺寸（保持颗粒视觉一致）
-            const textureWidth = Math.round(baseTextureSize / scaleRatio);
-            const textureHeight = Math.round(baseTextureSize / scaleRatio);
+            const textureWidth = Math.round(baseTextureSize / scale);
+            const textureHeight = Math.round(baseTextureSize / scale);
 
-            // ✅ 创建纹理图像的 canvas
+            // ✅ 创建纹理 canvas 并缩放绘制
             const textureCanvas = document.createElement("canvas");
             const textureCtx = textureCanvas.getContext("2d");
             textureCanvas.width = canvas.width;
             textureCanvas.height = canvas.height;
 
-            // ✅ 将纹理图像平铺缩放到字符图像大小
-            textureCtx.fillStyle = ctx.createPattern(texture, "repeat");
-            textureCtx.fillRect(0, 0, canvas.width, canvas.height);
+            for (let y = 0; y < canvas.height; y += textureHeight) {
+                for (let x = 0; x < canvas.width; x += textureWidth) {
+                    textureCtx.drawImage(texture, x, y, textureWidth, textureHeight);
+                }
+            }
 
             const textureData = textureCtx.getImageData(0, 0, canvas.width, canvas.height).data;
 
-            // ✅ 叠加纹理到不透明区域
+            // ✅ 混合纹理到字符图像
             for (let i = 0; i < data.length; i += 4) {
                 const alpha = data[i + 3];
                 if (alpha > 0) {
@@ -94,7 +96,10 @@ function applyXuanTextureToCharacters(blendRatio = 0.4, baseTextureSize = 512) {
             cell.innerHTML = "";
             insertBaseLayer(cell);
             cell.appendChild(result);
+        };
 
+        texture.onerror = () => {
+            console.warn("❌ 宣纸纹理加载失败，跳过该 cell");
         };
     });
 }
@@ -125,8 +130,10 @@ function applyGrainToCharacters(grainStrength = 0.2, grainPixelSize = 1) {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
 
-        const scaleRatio = parseFloat(cell.dataset.scaleRatio || "1");
-        const adjustedGrainSize = Math.max(1, Math.round(grainPixelSize / scaleRatio));
+        const scaleX = cell.clientWidth / img.naturalWidth;
+        const scaleY = cell.clientHeight / img.naturalHeight;
+        const scale = Math.min(scaleX, scaleY);
+        const adjustedGrainSize = Math.max(1, Math.round(grainPixelSize / scale));
 
         for (let y = 0; y < canvas.height; y += adjustedGrainSize) {
             for (let x = 0; x < canvas.width; x += adjustedGrainSize) {
@@ -173,13 +180,12 @@ function apply3dWithLight() {
         startDynamicLight(); // ✅ 只启动一次动画
     }, 100);
 }
-
 function apply3dffect(baseOffset = 1, intensity = 1.5) {
     const cells = document.querySelectorAll(".cell");
 
     cells.forEach(cell => {
         const img = cell.querySelector("img");
-        if (!img) return;
+        if (!img || !img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) return;
 
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
@@ -192,24 +198,32 @@ function apply3dffect(baseOffset = 1, intensity = 1.5) {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
 
-        // ✅ 读取缩放比例（由 fillGridContent 中 img.onload 设置）
-        const scaleRatio = parseFloat(cell.dataset.scaleRatio || "1");
+        // ✅ 计算缩放比例（cell 尺寸 / 原图尺寸）
+        const scaleX = cell.clientWidth / img.naturalWidth;
+        const scaleY = cell.clientHeight / img.naturalHeight;
+        const scale = Math.min(scaleX, scaleY);
 
-        // ✅ 计算视觉统一的浮雕偏移量（单位：像素）
-        const offset = Math.max(1, Math.round(baseOffset / scaleRatio)) * 4; // 每像素4字节
+        // ✅ 计算横向偏移像素（不乘以 4，直接用于坐标）
+        const dx = Math.max(1, Math.round(baseOffset / scale));
 
-        // ✅ 模拟浮雕：通过像素偏移计算亮度差
-        for (let i = 0; i < data.length - offset; i += 4) {
-            const r1 = data[i], g1 = data[i + 1], b1 = data[i + 2];
-            const r2 = data[i + offset], g2 = data[i + 1 + offset], b2 = data[i + 2 + offset];
+        // ✅ 调试输出
+        const char = cell.dataset.char || cell.textContent.trim();
+        console.log(`🔍 ${char} scale=${scale.toFixed(2)}, dx=${dx}`);
 
-            const lum1 = 0.299 * r1 + 0.587 * g1 + 0.114 * b1;
-            const lum2 = 0.299 * r2 + 0.587 * g2 + 0.114 * b2;
-            const diff = lum1 - lum2;
+        // ✅ 坐标式浮雕处理
+        for (let y = 0; y < canvas.height; y++) {
+            for (let x = 0; x < canvas.width - dx; x++) {
+                const i = (y * canvas.width + x) * 4;
+                const ni = (y * canvas.width + (x + dx)) * 4;
 
-            data[i] = Math.min(255, Math.max(0, r1 + diff * intensity));
-            data[i + 1] = Math.min(255, Math.max(0, g1 + diff * intensity));
-            data[i + 2] = Math.min(255, Math.max(0, b1 + diff * intensity));
+                const lum1 = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+                const lum2 = 0.299 * data[ni] + 0.587 * data[ni + 1] + 0.114 * data[ni + 2];
+                const diff = lum1 - lum2;
+
+                data[i] = Math.min(255, Math.max(0, data[i] + diff * intensity));
+                data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + diff * intensity));
+                data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + diff * intensity));
+            }
         }
 
         ctx.putImageData(imageData, 0, 0);
@@ -226,8 +240,10 @@ function apply3dffect(baseOffset = 1, intensity = 1.5) {
         cell.appendChild(result);
     });
 
-    startDynamicLight(); // ✅ 光源动画仍可用于视觉演示
+    startDynamicLight(); // ✅ 可选：动态光源增强立体感
 }
+
+
 function runRandomEffect() {
     // ✅ 移除中断判断，允许随时运行
     // if (!demoState || demoState.isInterrupted) return;
