@@ -180,6 +180,7 @@ function apply3dWithLight() {
         startDynamicLight(); // ✅ 只启动一次动画
     }, 100);
 }
+
 function apply3dffect(baseOffset = 1, intensity = 1.5) {
     const cells = document.querySelectorAll(".cell");
 
@@ -203,26 +204,34 @@ function apply3dffect(baseOffset = 1, intensity = 1.5) {
         const scaleY = cell.clientHeight / img.naturalHeight;
         const scale = Math.min(scaleX, scaleY);
 
-        // ✅ 计算横向偏移像素（不乘以 4，直接用于坐标）
-        const dx = Math.max(1, Math.round(baseOffset / scale));
+        // ✅ 计算浮点偏移量，并设置最小阈值（至少跨越1像素）
+        const offsetRatio = Math.max(1.0, baseOffset / scale);
 
         // ✅ 调试输出
         const char = cell.dataset.char || cell.textContent.trim();
-        console.log(`🔍 ${char} scale=${scale.toFixed(2)}, dx=${dx}`);
+        console.log(`🔍 ${char} scale=${scale.toFixed(2)}, offsetRatio=${offsetRatio.toFixed(2)}`);
 
-        // ✅ 坐标式浮雕处理
+        // ✅ 坐标式浮雕处理（横向偏移）
         for (let y = 0; y < canvas.height; y++) {
-            for (let x = 0; x < canvas.width - dx; x++) {
-                const i = (y * canvas.width + x) * 4;
-                const ni = (y * canvas.width + (x + dx)) * 4;
+            for (let x = 0; x < canvas.width - offsetRatio; x++) {
+                const i1 = (y * canvas.width + x) * 4;
 
-                const lum1 = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-                const lum2 = 0.299 * data[ni] + 0.587 * data[ni + 1] + 0.114 * data[ni + 2];
+                // 插值采样目标像素亮度
+                const x2 = x + offsetRatio;
+                const i2a = (y * canvas.width + Math.floor(x2)) * 4;
+                const i2b = (y * canvas.width + Math.ceil(x2)) * 4;
+                const t = x2 - Math.floor(x2);
+
+                const lum1 = 0.299 * data[i1] + 0.587 * data[i1 + 1] + 0.114 * data[i1 + 2];
+                const lum2 =
+                    (1 - t) * (0.299 * data[i2a] + 0.587 * data[i2a + 1] + 0.114 * data[i2a + 2]) +
+                    t * (0.299 * data[i2b] + 0.587 * data[i2b + 1] + 0.114 * data[i2b + 2]);
+
                 const diff = lum1 - lum2;
 
-                data[i] = Math.min(255, Math.max(0, data[i] + diff * intensity));
-                data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + diff * intensity));
-                data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + diff * intensity));
+                data[i1] = Math.min(255, Math.max(0, data[i1] + diff * intensity));
+                data[i1 + 1] = Math.min(255, Math.max(0, data[i1 + 1] + diff * intensity));
+                data[i1 + 2] = Math.min(255, Math.max(0, data[i1 + 2] + diff * intensity));
             }
         }
 
@@ -242,6 +251,7 @@ function apply3dffect(baseOffset = 1, intensity = 1.5) {
 
     startDynamicLight(); // ✅ 可选：动态光源增强立体感
 }
+
 
 
 function runRandomEffect() {
