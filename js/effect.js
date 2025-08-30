@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 let lightTimer = null;
 let lightAngle = 0;
 
@@ -602,4 +602,5 @@ function runRandomEffect() {
         }
     }, 2500);
 }
+
 >>>>>>> 14922e0857d554ae8f5ce8af66c7589260f5539b
