@@ -298,4 +298,5 @@ function runRandomEffect() {
             }, 100);
         }
     }, 2500);
+    setBaseColor(currentBaseColor);
 }

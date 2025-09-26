@@ -201,6 +201,12 @@ function applyColorCanvas(colorName) {
 
             cell.appendChild(result);
         };
+        // 原图染色逻辑结束后，处理 fallback 文字
+        const fallbackSpans = document.querySelectorAll(".cell span");
+        fallbackSpans.forEach(span => {
+            span.style.color = `rgb(${tint.r}, ${tint.g}, ${tint.b})`;
+        });
+
     });
 
     // 收起菜单
@@ -238,6 +244,14 @@ function hslToRgb(h, s, l) {
 
     return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
+
+function tintFallbackText(tint) {
+    const fallbackSpans = document.querySelectorAll(".cell span");
+    fallbackSpans.forEach(span => {
+        span.style.color = `rgb(${tint.r}, ${tint.g}, ${tint.b})`;
+    });
+}
+
 function applyColorRandomTint() {
     const tintColorNames = [
         'red', 'blue', 'gold', 'green', 'purple', 'crimson', 'orange', 'salmon',
@@ -248,6 +262,7 @@ function applyColorRandomTint() {
     const randomIndex = Math.floor(Math.random() * tintColorNames.length);
     const randomColor = tintColorNames[randomIndex];
     applyColorCanvas(randomColor);
+    tintFallbackText(tint);
 }
 
 function applyColorCanvasWithRandomTint() {
@@ -256,6 +271,10 @@ function applyColorCanvasWithRandomTint() {
     cells.forEach(cell => {
         const tint = getRandomTint(); // 🎨 每个 cell 独立颜色
 
+        const span = cell.querySelector("span");
+        if (span) {
+            span.style.color = `rgb(${tint.r}, ${tint.g}, ${tint.b})`;
+        }
         let originalSrc;
 
         if (cell.dataset.original) {

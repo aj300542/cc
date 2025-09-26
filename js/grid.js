@@ -271,6 +271,8 @@ async function updateGrid() {
     const cellCount = text.length;
     const { rows, cols } = generateGrid(cellCount);
     await fillGridContent(text.padEnd(rows * cols, "　"), rows, cols);
+    // ✅ 重新应用底色，确保新生成的 cell 同步
+    setBaseColor(currentBaseColor);
 }
 
 document.addEventListener("click", () => {
@@ -295,3 +297,8 @@ window.onload = () => {
     document.getElementById("textInput").addEventListener("input", updateGrid);
     updateGrid(); // 初始渲染
 };
+// ✅ 添加屏幕方向变化监听
+window.addEventListener("orientationchange", () => {
+    updateGrid();
+    setBaseColor(currentBaseColor);
+});

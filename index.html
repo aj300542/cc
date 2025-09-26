@@ -130,11 +130,17 @@
             currentBaseColor = color;
             console.log("底色已设置为：", color);
 
-            // 更新所有已插入的底色层
+            // ✅ 更新所有底色图层
             document.querySelectorAll(".base-color-layer").forEach(layer => {
                 layer.style.backgroundColor = currentBaseColor;
             });
+
+            // ✅ 更新所有 fallback 文字的背景色
+            document.querySelectorAll(".cell span").forEach(span => {
+                span.style.backgroundColor = currentBaseColor;
+            });
         }
+
 
         function insertBaseLayer(cell) {
             const baseLayer = document.createElement("div");
@@ -154,13 +160,7 @@
         const colorSelect = document.querySelector("select");
         let isHovering = false;
 
-        function setBaseColor(color) {
-            currentBaseColor = color;
-            console.log("底色已设置为：", color);
-            document.querySelectorAll(".base-color-layer").forEach(layer => {
-                layer.style.backgroundColor = currentBaseColor;
-            });
-        }
+
 
         function wheelHandler(e) {
             if (!isHovering) return; // ✅ 只有悬停时才触发
@@ -241,6 +241,7 @@
             }
         });
         document.getElementById("about-button").addEventListener("click", () => {
+
             window.open("https://aj300542.github.io/", "_blank");
         });
         document.getElementById("donate").addEventListener("click", () => {
